@@ -138,7 +138,6 @@ HashPassword    proc
 ;       DX - stores the password hash code
 ; Info:
 ;       PASSWORD - hash code of the correct password
-;       flag_password - a variable storing the value 1 if the password is correct and 0 if it is incorrect
 ;       RIGHT_PASSWORD - the value received by the flag_password variable if the password is correct
 ;;--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -147,9 +146,13 @@ ComparePassword proc
                 cmp dx, PASSWORD                                                        ; Password comparison
                 jne @@not_equal                                                         ; If true, then change the value of the flag
                                                                                         ; Otherwise we exit the function
-                mov flag_password, RIGHT_PASSWORD
+                mov dx, RIGHT_PASSWORD
+                jmp @@exit
         
         @@not_equal:
+                mov dx, WRONG_PASSWORD
+
+        @@exit:
                 ret
                 endp
 
@@ -157,7 +160,7 @@ ComparePassword proc
 ;;--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 ; Result function
 ; Info:
-;       flag_password - a variable storing the value 1 if the password is correct and 0 if it is incorrect
+;       dx - a variable storing the value 1 if the password is correct and 0 if it is incorrect
 ;       WRONG_PASSWORD - the value received by the flag_password variable if the password is incorrect
 ;       msg_right_password - message displayed on screen if password is correct
 ;       msg_wrong_password - message displayed on screen if password is incorrect
@@ -165,7 +168,7 @@ ComparePassword proc
 
 
 PrintResult     proc
-                cmp flag_password, WRONG_PASSWORD                                       ; Comparing the flag value with the value if the password is incorrect
+                cmp dx, WRONG_PASSWORD                                                  ; Comparing the flag value with the value if the password is incorrect
                 je @@wrong_password
 
                 PRINT_STR msg_right_password                                            ; Displaying a message that the password is correct
@@ -183,18 +186,16 @@ PrintResult     proc
 .data
 
 
-msg_hello db "Hello, enter your password: $"                                            ; Welcome message
-
-msg_right_password db "Right password!$"                                                ; Message displayed on screen if password is correct
-
-msg_wrong_password db "Wrong password...$"                                              ; Message displayed on screen if password is incorrect
-
 len_buffer db 254                                                                       ; Maximum number per character to read
 
 fact_len_buffer db 0                                                                    ; This variable will store the number of characters read from standard input
 
-buffer db 10 dup(?)                                                                     ; This variable will point to the beginning of the line read from standard input
+buffer db 40 dup(?)                                                                     ; This variable will point to the beginning of the line read from standard input
 
-flag_password db WRONG_PASSWORD                                                         ; A variable storing the value 1 if the password is correct and 0 if it is incorrect (initially stores the value of the incorrect password)
+msg_hello db "Hello, enter your password: $"                                            ; Welcome message
+
+msg_wrong_password db "Wrong password...$"                                              ; Message displayed on screen if password is incorrect
+
+msg_right_password db "Right password!$"                                                ; Message displayed on screen if password is correct
 
 end	Start
