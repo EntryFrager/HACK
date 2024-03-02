@@ -22,6 +22,7 @@ WRONG_PASSWORD equ 0                                                            
 
 PASSWORD equ 1809h                                                                      ; Password hash code
 
+LEN_OF_CANARY_VALUE equ 6h                                                              ; True canary string length
 
 Start:
                 Call Main
@@ -137,6 +138,7 @@ HashPassword    proc
 ; Entry:
 ;       DX - stores the password hash code
 ; Info:
+;       AX - if the canary is true, then ax = 0
 ;       PASSWORD - hash code of the correct password
 ;       flag_password - a variable storing the value 1 if the password is correct and 0 if it is incorrect
 ;       RIGHT_PASSWORD - the value received by the flag_password variable if the password is correct
@@ -144,14 +146,80 @@ HashPassword    proc
 
 
 ComparePassword proc
+                Call CanaryCheck                                                        ; Calling a function that checks the canary
+                cmp ax, 0                                                               ; If the canary is true, then ax = 0
+                jne @@not_equal
+
                 cmp dx, PASSWORD                                                        ; Password comparison
                 jne @@not_equal                                                         ; If true, then change the value of the flag
                                                                                         ; Otherwise we exit the function
+
                 mov flag_password, RIGHT_PASSWORD
         
         @@not_equal:
                 ret
                 endp
+
+
+;;--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+; Function that checks the value of the canary
+; Info:
+;       canary_value - true meaning of canary
+;       canary - the meaning of the canary at the moment
+;       LEN_OF_CANARY_VALUE - true canary string length
+;;--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+CanaryCheck     proc
+                push offset canary_value
+                push offset canary
+                push LEN_OF_CANARY_VALUE
+
+                Call MyMemCmp                                                           ; Compare the true and actual value of the canary
+
+                cmp ax, 0
+                je @@canary_right                                                       ; If the lines are different, then
+                mov flag_password, WRONG_PASSWORD                                       ; Set the flag to 0 - the password is incorrect
+
+        @@canary_right:
+                ret
+                endp
+
+
+;;--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+; A function that compares the first n characters of two strings
+; Entry:
+;       SI (first arg) - pointer to first line
+;       DI (second arg) - pointer to second line
+;       CX (third arg ) - number of bytes compared
+; Destr:
+;       AX
+;       CX
+;       SI
+;       DI
+;;--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+MyMemCmp	proc
+		push bp
+		mov bp, sp
+
+		mov si, [bp + 8]                                                
+		mov di, [bp + 6]
+		mov cx, [bp + 4]
+
+		mov ax, 0
+
+        again:
+		add al, [si]                                                            ; AL = AL + ASCII_CODE_SYMBOL_STR_1 - ASCII_CODE_SYMBOL_STR_2
+		sub al, [di]
+
+                inc si
+                inc di
+		loop again
+
+		pop bp
+
+		ret 6
+		endp
 
 
 ;;--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -183,6 +251,8 @@ PrintResult     proc
 .data
 
 
+canary_value db "canary"                                                                ; Correct meaning of canary
+
 msg_hello db "Hello, enter your password: $"                                            ; Welcome message
 
 msg_right_password db "Right password!$"                                                ; Message displayed on screen if password is correct
@@ -194,6 +264,8 @@ len_buffer db 254                                                               
 fact_len_buffer db 0                                                                    ; This variable will store the number of characters read from standard input
 
 buffer db 10 dup(?)                                                                     ; This variable will point to the beginning of the line read from standard input
+
+canary db "canary"                                                                      ; Canary responsible for preserving the password correctness flag
 
 flag_password db WRONG_PASSWORD                                                         ; A variable storing the value 1 if the password is correct and 0 if it is incorrect (initially stores the value of the incorrect password)
 
