@@ -1,0 +1,6 @@
+
+*.o
+*.o
+crack/tabletka/hack.o
+crack/tabletka/main.o
+*.o

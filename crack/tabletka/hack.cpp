@@ -21,27 +21,58 @@ void crack_file (char *file_name, int *code_error)
 void graph_video ()
 {
         txCreateWindow (600, 400, true);
-        txSetColor (TX_BLACK);
+        txSetColor (TX_PINK);
 
-        HDC image = txLoadImage ("../png/1.bmp", 600, 400);
-        txBitBlt (txDC (), 0, 0, 0, 0, image);
+        char *name_image[10] = {"../png/1.bmp", "../png/2.bmp", "../png/3.bmp", "../png/4.bmp", "../png/5.bmp",
+                                "../png/6.bmp", "../png/7.bmp", "../png/8.bmp", "../png/9.bmp", "../png/10.bmp"};
 
-        int x_0 = 0;
-        int y_0 = 30;
+        int x_0 = 10;
+        int y_0 = 300;
 
-        int delta_x = 10;
-        int y_1 = 50;
+        int x_1 = 310;
+        int y_1 = 340;
 
-        char str[2] = ".";
+        int x_2 = 13;
 
-        for (size_t i = 1; i < 61; i++)
+        int delta_x = 3;
+
+        int x_0_proc = 130;
+        int y_0_proc = 350;
+
+        int x_1_proc = 200;
+        int y_1_proc = 390;
+
+        char str[4] = "";
+
+        char *png_name = NULL;
+
+        for (size_t i = 1; i <= 100; i++)
         {
-                txDrawText (x_0, y_0, x_0 + delta_x, y_1, str);
+                txClear ();
 
-                x_0 += delta_x;
+                if ((i - 1) % 10 == 0)
+                {
+                        png_name = name_image[(i - 1) / 10];       
+                }
 
-                txSleep (50);
+                HDC image = txLoadImage (png_name, 600, 400);
+                txBitBlt (txDC (), 0, 0, 0, 0, image);
+
+                txSetFillColor (TX_WHITE);
+                txRectangle (x_0, y_0, x_1, y_1);
+                
+                txSetFillColor (TX_PINK);
+                txRectangle (x_0, y_0, x_2, y_1);
+
+                char *str_proc = itoa (i, str, 10);
+                txDrawText (x_0_proc, y_0_proc, x_1_proc, y_1_proc, str_proc);
+
+                x_2 += delta_x;
+
+                txSleep (100);
         }
 
         txDrawText (150, 70, 450, 100, "File successfully hacked");
+
+        txDestroyWindow ();
 }

@@ -4,7 +4,7 @@ int main ()
 {
         int code_error = 0;
 
-        char *file_name = "../CRACKME (1).COM";
+        char *file_name = "../CRACKME.COM";
 
         crack_file (file_name, &code_error);
 
