@@ -1,0 +1,470 @@
+Turbo Assembler	 Version 4.1	    03/03/24 17:50:06	    Page 1
+hack.asm
+
+
+
+      1	0000			     .model tiny
+      2				     .286
+      3	0000			     .code
+      4				     org 100h
+      5
+      6
+      7				     PRINT_STR	     macro str:REQ							     ; Macro+
+      8				     for displaying the	string str on the screen
+      9						     mov dx, offset str
+     10						     mov ah, 09h
+     11						     int 21h
+     12
+     13						     endm
+     14
+     15
+     16	      =000A		     LINE_FEED equ 0Ah									     ; ASCII+
+     17				     code for line feed
+     18
+     19	      =000D		     CARRIAGE_RETURN equ 0Dh								     ; ASCII+
+     20				     code for carriage return
+     21
+     22	      =0001		     RIGHT_PASSWORD equ	1								     ; Value+
+     23				     for the password flag if it is correct
+     24
+     25	      =0000		     WRONG_PASSWORD equ	0								     ; Value+
+     26				     for the password flag if it is incorrect
+     27
+     28	      =1809		     PASSWORD equ 1809h									     ;	    +
+     29				     Password hash code
+     30
+     31	      =0006		     LEN_OF_CANARY_VALUE equ 6h								     ; True +
+     32				     canary string length
+     33
+     34	0100			     Start:
+     35	0100  E8 0008				     Call Main
+     36	0103  EB 01 90				     jmp Exit
+     37
+     38	0106				     Exit:									     ; Exit +
+     39				     the program
+     40	0106  B8 4C00				     mov ax, 4c00h
+     41	0109  CD 21				     int 21h
+     42
+     43
+     44	010B			     Main    proc
+     45	010B  E8 000D				     Call ReadPassword							     ;	    +
+     46				     Calling the password reading function
+     47
+     48	010E  E8 0019				     Call NewLine							     ;	    +
+     49				     Calling a function	to go to the beginning of a new	line
+     50
+     51	0111  E8 0023				     Call HashPassword							     ;	    +
+     52				     Calling the Password Hashing Function
+     53
+     54	0114  E8 0035				     Call ComparePassword						     ;	    +
+     55				     Calling the password comparison function
+     56
+     57	0117  E8 0079				     Call PrintResult							     ;	    +
+Turbo Assembler	 Version 4.1	    03/03/24 17:50:06	    Page 2
+hack.asm
+
+
+
+     58				     Calling the output	function
+     59
+     60	011A  C3				     ret
+     61	011B					     endp
+     62
+     63
+     64				     ;;----------------------------------------------------------------------------------------------
+     65				     ------------------------------------------------------------------------------------------------
+     66				     ----------
+     67				     ; Function	to read	password from stream input
+     68				     ; Info:
+     69				     ;	     AX	- stores the function number for reading a line	from stdin into	a buffer
+     70				     ;	     DX	- stores the maximum number per	character to read
+     71				     ;	     msg_hello - welcome message
+     72				     ;	     len_buffer	- maximum number per character to read
+     73				     ; Destr:
+     74				     ;	     AX
+     75				     ;	     DX
+     76				     ;;----------------------------------------------------------------------------------------------
+     77				     ------------------------------------------------------------------------------------------------
+     78				     ----------
+     79
+     80
+     81	011B			     ReadPassword    proc
+     82						     PRINT_STR msg_hello						     ;	    +
+     83				     Welcome message output
+1    84	011B  BA 0006r				     mov dx, offset msg_hello
+1    85	011E  B4 09				     mov ah, 09h
+1    86	0120  CD 21				     int 21h
+1    87
+     88
+     89	0122  BA 0045r				     mov dx, offset len_buffer
+     90	0125  B4 0A				     mov ah, 0Ah
+     91	0127  CD 21				     int 21h								     ;	    +
+     92				     Reading password
+     93
+     94	0129  C3				     ret
+     95	012A					     endp
+     96
+     97
+     98				     ;;----------------------------------------------------------------------------------------------
+     99				     ------------------------------------------------------------------------------------------------
+    100				     ----------
+    101				     ; Function	to go to the beginning of a new	line
+    102				     ; Info:
+    103				     ;	     AX	- stores the function number for displaying one	character on the screen
+    104				     ;	     DX	- stores the character printed to standard output
+    105				     ;	     LINE_FEED - ASCII code for	line feed
+    106				     ;	     CARRIAGE_RETURN - ASCII code for carriage return
+    107				     ; Destr:
+    108				     ;	     AX
+    109				     ;	     DX
+    110				     ;;----------------------------------------------------------------------------------------------
+    111				     ------------------------------------------------------------------------------------------------
+    112				     ----------
+    113
+    114
+Turbo Assembler	 Version 4.1	    03/03/24 17:50:06	    Page 3
+hack.asm
+
+
+
+    115	012A			     NewLine proc
+    116	012A  B4 02				     mov ah, 02h
+    117
+    118	012C  BA 000A				     mov dx, LINE_FEED
+    119	012F  CD 21				     int 21h								     ;	    +
+    120				     Printing a	newline	character
+    121
+    122	0131  BA 000D				     mov dx, CARRIAGE_RETURN
+    123	0134  CD 21				     int 21h								     ;	    +
+    124				     Printing a	carriage return	to the beginning of a line
+    125
+    126	0136  C3				     ret
+    127	0137					     endp
+    128
+    129
+    130				     ;;----------------------------------------------------------------------------------------------
+    131				     ------------------------------------------------------------------------------------------------
+    132				     ----------
+    133				     ; Password	hashing	function
+    134				     ; General formula:	dx = dx	+ ASCII_CODE
+    135				     ; Info:
+    136				     ;	     AX	- used to temporarily store the	value from the dx register
+    137				     ;	     BX	- stores a pointer to the password string
+    138				     ;	     CX	- stores a value with the password length
+    139				     ;	     DX	- stores the hash code value
+    140				     ;	     buffer - variable pointing	to the password	string
+    141				     ;	     fact_len_buffer - password	length
+    142				     ; Destr:
+    143				     ;	     AX
+    144				     ;	     BX
+    145				     ;	     CX
+    146				     ;	     DX
+    147				     ;;----------------------------------------------------------------------------------------------
+    148				     ------------------------------------------------------------------------------------------------
+    149				     ----------
+    150
+    151
+    152	0137			     HashPassword    proc
+    153	0137  BB 0047r				     mov bx, offset buffer
+    154	013A  8A 0E 0046r			     mov cl, fact_len_buffer
+    155	013E  BA 1505				     mov dx, 5381d							     ; this +
+    156				     number gives a more uniform distribution of hash values
+    157
+    158	0141				     @@hash_again:
+    159	0141  B8 0000				     mov ax, 0
+    160	0144  8A 07				     mov al, byte ptr [bx]
+    161	0146  03 D0				     add dx, ax								    ; add   +
+    162				     the ascii code of the symbol to the hash
+    163
+    164	0148  43				     inc bx								     ; move +
+    165				     to	the next character of the password
+    166	0149  E2 F6				     loop @@hash_again							     ; dx = +
+    167				     dx	+ ASCII_CODE
+    168
+    169	014B  C3				     ret
+    170	014C					     endp
+    171
+Turbo Assembler	 Version 4.1	    03/03/24 17:50:06	    Page 4
+hack.asm
+
+
+
+    172
+    173				     ;;----------------------------------------------------------------------------------------------
+    174				     ------------------------------------------------------------------------------------------------
+    175				     ----------
+    176				     ; Password	comparison function
+    177				     ; Entry:
+    178				     ;	     DX	- stores the password hash code
+    179				     ; Info:
+    180				     ;	     AX	- if the canary	is true, then ax = 0
+    181				     ;	     PASSWORD -	hash code of the correct password
+    182				     ;	     flag_password - a variable	storing	the value 1 if the password is correct and 0 if	it  +
+    183				     is	incorrect
+    184				     ;	     RIGHT_PASSWORD - the value	received by the	flag_password variable if the password is   +
+    185				     correct
+    186				     ;;----------------------------------------------------------------------------------------------
+    187				     ------------------------------------------------------------------------------------------------
+    188				     ----------
+    189
+    190
+    191	014C			     ComparePassword proc
+    192	014C  E8 0012				     Call CanaryCheck							     ;	    +
+    193				     Calling a function	that checks the	canary
+    194	014F  3D 0000				     cmp ax, 0								     ; If   +
+    195				     the canary	is true, then ax = 0
+    196	0152  75 0C				     jne @@not_equal
+    197
+    198	0154  81 FA 1809			     cmp dx, PASSWORD							     ;	    +
+    199				     Password comparison
+    200	0158  75 06				     jne @@not_equal							     ; If   +
+    201				     true, then	change the value of the	flag
+    202															     ;	    +
+    203				     Otherwise we exit the function
+    204
+    205	015A  C6 06 0057r 01 90			     mov flag_password,	RIGHT_PASSWORD
+    206
+    207	0160				     @@not_equal:
+    208	0160  C3				     ret
+    209	0161					     endp
+    210
+    211
+    212				     ;;----------------------------------------------------------------------------------------------
+    213				     ------------------------------------------------------------------------------------------------
+    214				     ----------
+    215				     ; Function	that checks the	value of the canary
+    216				     ; Info:
+    217				     ;	     canary_value - true meaning of canary
+    218				     ;	     canary - the meaning of the canary	at the moment
+    219				     ;	     LEN_OF_CANARY_VALUE - true	canary string length
+    220				     ;;----------------------------------------------------------------------------------------------
+    221				     ------------------------------------------------------------------------------------------------
+    222				     ----------
+    223
+    224	0161			     CanaryCheck     proc
+    225	0161  68 0000r				     push offset canary_value
+    226	0164  68 0051r				     push offset canary
+    227	0167  6A 06				     push LEN_OF_CANARY_VALUE
+    228
+Turbo Assembler	 Version 4.1	    03/03/24 17:50:06	    Page 5
+hack.asm
+
+
+
+    229	0169  E8 000C				     Call MyMemCmp							     ;	    +
+    230				     Compare the true and actual value of the canary
+    231
+    232	016C  3D 0000				     cmp ax, 0
+    233	016F  74 06				     je	@@canary_right							     ; If   +
+    234				     the lines are different, then
+    235	0171  C6 06 0057r 00 90			     mov flag_password,	WRONG_PASSWORD					     ; Set  +
+    236				     the flag to 0 - the password is incorrect
+    237
+    238	0177				     @@canary_right:
+    239	0177  C3				     ret
+    240	0178					     endp
+    241
+    242
+    243				     ;;----------------------------------------------------------------------------------------------
+    244				     ------------------------------------------------------------------------------------------------
+    245				     ----------
+    246				     ; A function that compares	the first n characters of two strings
+    247				     ; Entry:
+    248				     ;	     SI	(first arg) - pointer to first line
+    249				     ;	     DI	(second	arg) - pointer to second line
+    250				     ;	     CX	(third arg ) - number of bytes compared
+    251				     ; Destr:
+    252				     ;	     AX
+    253				     ;	     CX
+    254				     ;	     SI
+    255				     ;	     DI
+    256				     ;;----------------------------------------------------------------------------------------------
+    257				     ------------------------------------------------------------------------------------------------
+    258				     ----------
+    259
+    260	0178			     MyMemCmp	     proc
+    261	0178  55				     push bp
+    262	0179  8B EC				     mov bp, sp
+    263
+    264	017B  8B 76 08				     mov si, [bp + 8]
+    265	017E  8B 7E 06				     mov di, [bp + 6]
+    266	0181  8B 4E 04				     mov cx, [bp + 4]
+    267
+    268	0184  B8 0000				     mov ax, 0
+    269
+    270	0187				     again:
+    271	0187  02 04				     add al, [si]							     ; AL = +
+    272				     AL	+ ASCII_CODE_SYMBOL_STR_1 - ASCII_CODE_SYMBOL_STR_2
+    273	0189  2A 05				     sub al, [di]
+    274
+    275	018B  46				     inc si
+    276	018C  47				     inc di
+    277	018D  E2 F8				     loop again
+    278
+    279	018F  5D				     pop bp
+    280
+    281	0190  C2 0006				     ret 6
+    282	0193					     endp
+    283
+    284
+    285				     ;;----------------------------------------------------------------------------------------------
+Turbo Assembler	 Version 4.1	    03/03/24 17:50:06	    Page 6
+hack.asm
+
+
+
+    286				     ------------------------------------------------------------------------------------------------
+    287				     ----------
+    288				     ; Result function
+    289				     ; Info:
+    290				     ;	     flag_password - a variable	storing	the value 1 if the password is correct and 0 if	it  +
+    291				     is	incorrect
+    292				     ;	     WRONG_PASSWORD - the value	received by the	flag_password variable if the password is   +
+    293				     incorrect
+    294				     ;	     msg_right_password	- message displayed on screen if password is correct
+    295				     ;	     msg_wrong_password	- message displayed on screen if password is incorrect
+    296				     ;;----------------------------------------------------------------------------------------------
+    297				     ------------------------------------------------------------------------------------------------
+    298				     ----------
+    299
+    300
+    301	0193			     PrintResult     proc
+    302	0193  80 3E 0057r 00			     cmp flag_password,	WRONG_PASSWORD					     ;	    +
+    303				     Comparing the flag	value with the value if	the password is	incorrect
+    304	0198  74 0A				     je	@@wrong_password
+    305
+    306						     PRINT_STR msg_right_password					     ;	    +
+    307				     Displaying	a message that the password is correct
+1   308	019A  BA 0023r				     mov dx, offset msg_right_password
+1   309	019D  B4 09				     mov ah, 09h
+1   310	019F  CD 21				     int 21h
+1   311
+    312	01A1  EB 08 90				     jmp @@ret
+    313
+    314	01A4				     @@wrong_password:
+    315						     PRINT_STR msg_wrong_password					     ;	    +
+    316				     Displaying	a message that the password is incorrect
+1   317	01A4  BA 0033r				     mov dx, offset msg_wrong_password
+1   318	01A7  B4 09				     mov ah, 09h
+1   319	01A9  CD 21				     int 21h
+1   320
+    321
+    322
+    323	01AB				     @@ret:
+    324	01AB  C3				     ret
+    325	01AC					     endp
+    326
+    327
+    328	01AC			     .data
+    329
+    330
+    331	0000  63 61 6E 61 72 79	     canary_value db "canary"								     ;	    +
+    332				     Correct meaning of	canary
+    333
+    334	0006  48 65 6C 6C 6F 2C	20+  msg_hello db "Hello, enter	your password: $"					     ;	    +
+    335	      65 6E 74 65 72 20	79+  Welcome message
+    336	      6F 75 72 20 70 61	73+
+    337	      73 77 6F 72 64 3A	20+
+    338	      24
+    339
+    340	0023  52 69 67 68 74 20	70+  msg_right_password	db "Right password!$"						     ;	    +
+    341	      61 73 73 77 6F 72	64+  Message displayed on screen if password is	correct
+    342	      21 24
+Turbo Assembler	 Version 4.1	    03/03/24 17:50:06	    Page 7
+hack.asm
+
+
+
+    343
+    344	0033  57 72 6F 6E 67 20	70+  msg_wrong_password	db "Wrong password...$"						     ;	    +
+    345	      61 73 73 77 6F 72	64+  Message displayed on screen if password is	incorrect
+    346	      2E 2E 2E 24
+    347
+    348	0045  FE		     len_buffer	db 254									     ;	    +
+    349				     Maximum number per	character to read
+    350
+    351	0046  00		     fact_len_buffer db	0								     ; This +
+    352				     variable will store the number of characters read from standard input
+    353
+    354	0047  0A*(??)		     buffer db 10 dup(?)								     ; This +
+    355				     variable will point to the	beginning of the line read from	standard input
+    356
+    357	0051  63 61 6E 61 72 79	     canary db "canary"									     ;	    +
+    358				     Canary responsible	for preserving the password correctness	flag
+    359
+    360	0057  00		     flag_password db WRONG_PASSWORD							     ; A    +
+    361				     variable storing the value	1 if the password is correct and 0 if it is incorrect (initially    +
+    362				     stores the	value of the incorrect password)
+    363
+    364				     end     Start
+Turbo Assembler	 Version 4.1	    03/03/24 17:50:06	    Page 8
+Symbol Table
+
+
+
+
+Symbol Name			  Type	 Value
+
+??DATE				  Text	 "03/03/24"
+??FILENAME			  Text	 "hack	  "
+??TIME				  Text	 "17:50:06"
+??VERSION			  Number 040A
+@32BIT				  Text	 0
+@@CANARY_RIGHT			  Near	 DGROUP:0177
+@@HASH_AGAIN			  Near	 DGROUP:0141
+@@NOT_EQUAL			  Near	 DGROUP:0160
+@@RET				  Near	 DGROUP:01AB
+@@WRONG_PASSWORD		  Near	 DGROUP:01A4
+@CODE				  Text	 DGROUP
+@CODESIZE			  Text	 0
+@CPU				  Text	 0707H
+@CURSEG				  Text	 _DATA
+@DATA				  Text	 DGROUP
+@DATASIZE			  Text	 0
+@FILENAME			  Text	 HACK
+@INTERFACE			  Text	 000H
+@MODEL				  Text	 1
+@STACK				  Text	 DGROUP
+@WORDSIZE			  Text	 2
+AGAIN				  Near	 DGROUP:0187
+BUFFER				  Byte	 DGROUP:0047
+CANARY				  Byte	 DGROUP:0051
+CANARYCHECK			  Near	 DGROUP:0161
+CANARY_VALUE			  Byte	 DGROUP:0000
+CARRIAGE_RETURN			  Number 000D
+COMPAREPASSWORD			  Near	 DGROUP:014C
+EXIT				  Near	 DGROUP:0106
+FACT_LEN_BUFFER			  Byte	 DGROUP:0046
+FLAG_PASSWORD			  Byte	 DGROUP:0057
+HASHPASSWORD			  Near	 DGROUP:0137
+LEN_BUFFER			  Byte	 DGROUP:0045
+LEN_OF_CANARY_VALUE		  Number 0006
+LINE_FEED			  Number 000A
+MAIN				  Near	 DGROUP:010B
+MSG_HELLO			  Byte	 DGROUP:0006
+MSG_RIGHT_PASSWORD		  Byte	 DGROUP:0023
+MSG_WRONG_PASSWORD		  Byte	 DGROUP:0033
+MYMEMCMP			  Near	 DGROUP:0178
+NEWLINE				  Near	 DGROUP:012A
+PASSWORD			  Number 1809
+PRINTRESULT			  Near	 DGROUP:0193
+READPASSWORD			  Near	 DGROUP:011B
+RIGHT_PASSWORD			  Number 0001
+START				  Near	 DGROUP:0100
+WRONG_PASSWORD			  Number 0000
+
+Macro Name
+
+PRINT_STR
+Turbo Assembler	 Version 4.1	    03/03/24 17:50:06	    Page 9
+Symbol Table
+
+
+
+
+Groups & Segments		  Bit Size Align  Combine Class
+
+DGROUP				  Group
+  _DATA				  16  0058 Word	  Public  DATA
+  _TEXT				  16  01AC Word	  Public  CODE
+

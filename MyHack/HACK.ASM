@@ -153,7 +153,6 @@ ComparePassword proc
                 cmp dx, PASSWORD                                                        ; Password comparison
                 jne @@not_equal                                                         ; If true, then change the value of the flag
                                                                                         ; Otherwise we exit the function
-
                 mov flag_password, RIGHT_PASSWORD
         
         @@not_equal:
@@ -170,7 +169,7 @@ ComparePassword proc
 ;;--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 CanaryCheck     proc
-                push offset canary_value
+                push offset canary_true_value
                 push offset canary
                 push LEN_OF_CANARY_VALUE
 
@@ -251,7 +250,7 @@ PrintResult     proc
 .data
 
 
-canary_value db "canary"                                                                ; Correct meaning of canary
+canary_true_value db "canary"                                                           ; Correct meaning of canary
 
 msg_hello db "Hello, enter your password: $"                                            ; Welcome message
 
