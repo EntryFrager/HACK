@@ -46,22 +46,25 @@ void graph_video ()
 
         char *png_name = NULL;
 
+        char *name_sound = "../sound/sound.wav";
+        
+        txPlaySound (name_sound);
+
         for (size_t i = 1; i <= 100; i++)
         {
-                txClear ();
-
                 if ((i - 1) % 10 == 0)
                 {
                         png_name = name_image[(i - 1) / 10];       
                 }
 
                 HDC image = txLoadImage (png_name, 600, 400);
+                txClear ();
                 txBitBlt (txDC (), 0, 0, 0, 0, image);
 
                 txSetFillColor (TX_WHITE);
                 txRectangle (x_0, y_0, x_1, y_1);
                 
-                txSetFillColor (TX_PINK);
+                txSetFillColor (TX_PINK);       
                 txRectangle (x_0, y_0, x_2, y_1);
 
                 char *str_proc = itoa (i, str, 10);
@@ -69,10 +72,10 @@ void graph_video ()
 
                 x_2 += delta_x;
 
-                txSleep (100);
+                txSleep (200);
         }
 
-        txDrawText (150, 70, 450, 100, "File successfully hacked");
+        txPlaySound (NULL);
 
-        txDestroyWindow ();
+        txDrawText (150, 70, 450, 100, "File successfully hacked");
 }
